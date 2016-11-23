@@ -1,0 +1,126 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+ASSETS=$(cd "$(dirname "$0")" && pwd)
+source $ASSETS/helpers/git.sh
+source $ASSETS/helpers/utils.sh
+source $ASSETS/helpers/bitbucket.sh
+
+# for all temporary files in 'check'
+tmpfile() {
+  tmp_file "check-$1"
+}
+
+# for jq
+PATH=/usr/local/bin:$PATH
+
+payload=$(tmpfile request)
+
+cat > "$payload" <&0
+
+log "Configuring git credentials"
+load_pubkey "$payload"
+configure_git_ssl_verification "$payload"
+configure_credentials "$payload"
+
+log "Parsing payload"
+uri=$(jq -r '.source.uri // ""' < "$payload")
+git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
+
+only_for_branch=$(jq -r '.source.only_for_branch // "."' < "$payload")
+only_without_conflicts=$(jq -r '.source.only_without_conflicts // "true"' < "$payload")
+only_when_mergeable=$(jq -r '.source.only_when_mergeable // "false"' < "$payload")
+only_when_asked=$(jq -r '.source.only_when_asked // "false"' < "$payload")
+rebuild_when_target_changed=$(jq -r '.source.rebuild_when_target_changed // "false"' < "$payload")
+rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payload")
+
+configure_git_global "${git_config_payload}"
+
+if [ -z "$uri" ]; then
+  log "invalid payload (missing uri):" "$(cat $payload)"
+  exit 1
+fi
+
+# if option 'rebuild_when_target_changed' is enabled take merge branch since commit will always change for changes on target branch
+prq_branch="from"
+if [ "$rebuild_when_target_changed" == "true" ]; then
+  prq_branch="merge"
+fi
+
+# collect all pull requests from uri
+pull_requests=$(git ls-remote "$uri" | grep -E "/pull\-requests/[0-9]+/${prq_branch}" | cat)
+
+versions="[]"
+if [ -n "$pull_requests" ]; then
+  log "Calculating repository specifics"
+  # determine repository name for calling REST api
+  repo_name=$(basename "$uri" | sed "s/.git$//")
+  repo_project=$(basename $(dirname "$uri"))
+
+  # parse uri and retrieve host
+  uri_parser "$uri"
+  repo_host="${uri_schema}://${uri_address}"
+
+  versions="[]"
+  while read pull_request ; do
+    log "Verifying pull request"
+    # determine hash and prq number from grep
+    prq_number=$(echo "$pull_request" | sed -E "s/^.*\/pull-requests\/([0-9]+)\/.*$/\\1/")
+    prq_hash=$(echo "$pull_request" | awk '{print $1}')
+
+    # verify target branch of prq
+    prq=$(bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$prq_number")
+    prq_to_branch=$(echo "$prq" | jq -r '.toRef.displayId')
+    if [[ "$prq_to_branch" =~ $only_for_branch ]]; then
+
+      if [ "$only_when_mergeable" == "true" -o "$only_without_conflicts" == "true" ]; then
+        prq_merge=$(bitbucket_pullrequest_merge "$repo_host" "$repo_project" "$repo_name" "$prq_number")
+
+        # verify if prq has merge conflicts
+        conflicted=$(echo "$prq_merge" | jq -r '.conflicted')
+        if [ "$conflicted" == "true" -a "$only_without_conflicts" == "true" ]; then continue; fi
+
+        # verify if prq is mergeable (e.g. enough approvals, tasks done, ...)
+        mergeable=$(echo "$prq_merge" | jq -r '.canMerge')
+        if [ "$mergeable" == "false" -a "$only_when_mergeable" == "true" ]; then continue; fi
+      fi
+
+      # edit timestamp to version to force new build when rebuild_phrase is included in comments
+      prq_verify_date=$(echo "$prq" | jq -r '.createdDate')
+      skip_build=false
+      comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" | jq -c '.[]')
+      if [ -n "$comments" ]; then
+        while read comment; do
+          text=$(echo "$comment" | jq -r '.text')
+
+          # check for progress or finished messages => do not include in versions when available
+          if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash"; then
+            log "Skipping PRQ #$prq_number since already handled"
+            skip_build=true
+            break
+          fi
+
+          # edit timestamp to force new build when rebuild_phrase is included in comments
+          if echo "$text" | grep -Ec "$rebuild_phrase" > /dev/null; then
+            prq_verify_date=$(echo "$comment" | jq -r '.createdDate')
+            break
+          fi
+        done <<< "$comments"
+      fi
+
+      # add prq to versions
+      if [ "$skip_build" == "false" ]; then
+        pretty_date=$(date -r "$(( ($prq_verify_date + 500) / 1000))")
+        versions+=" + [{ id: \"$prq_number\", hash: \"$prq_hash\", date: \"$pretty_date\" }]"
+      fi
+
+    fi
+  done <<< "$pull_requests"
+fi
+
+jq -n "$versions" >&3

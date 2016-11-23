@@ -1,0 +1,180 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -e
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+ASSETS=$(cd "$(dirname "$0")" && pwd)
+source $ASSETS/helpers/git.sh
+source $ASSETS/helpers/utils.sh
+source $ASSETS/helpers/bitbucket.sh
+
+# for all temporary files in 'out'
+tmpfile() {
+  tmp_file_unique "out-$1"
+}
+
+source=$1
+
+if [ -z "$source" ]; then
+  echo "usage: $0 <path/to/source>"
+  exit 1
+fi
+
+# for jq
+PATH=/usr/local/bin:$PATH
+
+payload=$(tmpfile request)
+
+cat > "$payload" <&0
+
+load_pubkey "$payload"
+configure_git_ssl_verification "$payload"
+configure_credentials "$payload"
+
+uri=$(jq -r '.source.uri // ""' < "$payload")
+git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
+rebuild_when_target_changed=$(jq -r '.source.rebuild_when_target_changed // "false"' < "$payload")
+rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payload")
+
+path=$(jq -r '.params.path // ""' < "$payload")
+status=$(jq -r '.params.status // ""' < "$payload")
+
+configure_git_global "${git_config_payload}"
+
+if [ -z "$uri" ]; then
+  log "invalid payload (missing uri)"
+  exit 1
+fi
+
+if [ -z "$path" ]; then
+  log "invalid payload (missing path)"
+  exit 1
+fi
+
+if [ -z "$status" ]; then
+  log "invalid payload (missing status)"
+  exit 1
+fi
+
+cd "$source"
+cd "$path"
+
+ref=$(git rev-parse HEAD)
+
+ls_remote=$(git ls-remote "$uri")
+prqs=$(echo "$ls_remote" | grep -E "/pull\-requests/[0-9]+" | grep "$ref" | cat)
+
+# search for prq merge commits in git ls-remote that match current commit
+# if none match we can't return a version since we can't determine the correct prq
+prq_number=$(echo "$prqs" | sed -E "s/^.*\/pull-requests\/([0-9]+)\/.*$/\\1/")
+
+if [ -n "$prq_number" ]; then
+
+  # if option 'rebuild_when_target_changed' is enabled take merge branch since commit will always change for changes on target branch
+  prq_branch="from"
+  if [ "$rebuild_when_target_changed" == "true" ]; then
+    prq_branch="merge"
+  fi
+
+  prq_hash=$(echo "$ls_remote" | grep -E "/pull\-requests/${prq_number}/${prq_branch}" | awk '{print $1}')
+
+  if [ -z "$prq_hash" ]; then
+    log "Failed to determine pull request hash from id $prq_number in \n$ls_remote"
+    exit 1
+  fi
+
+  case "$status" in
+    success)
+      build_state="SUCCESSFUL"
+      ;;
+    failure)
+      build_state="FAILED"
+      ;;
+    pending)
+      build_state="INPROGRESS"
+      ;;
+    *)
+      log "status '$status' is not supported -- only success, failure or pending"
+      exit 1
+  esac
+
+  # set build status on commit in bitbucket, this has to be the latest source commit or the pull request won't pick it up
+  source_commit=$(git rev-list --parents -1 $(git rev-parse HEAD) | awk '{print $3}')
+  target_commit=$(git rev-list --parents -1 $(git rev-parse HEAD) | awk '{print $2}')
+
+  # determine repository name for calling REST api
+  repo_name=$(basename "$uri" | sed "s/.git$//")
+  repo_project=$(basename $(dirname "$uri"))
+
+  # parse uri and retrieve host
+  uri_parser "$uri"
+  repo_host="${uri_schema}://${uri_address}"
+
+  # include ATC_EXTERNAL_URL in build status key, different sources should have different builds
+  build_key="$BUILD_TEAM_NAME-$BUILD_PIPELINE_NAME-$BUILD_JOB_NAME-$ATC_EXTERNAL_URL"
+  build_name="Concourse $BUILD_TEAM_NAME: $BUILD_PIPELINE_NAME - $BUILD_JOB_NAME - #$BUILD_NAME"
+  build_url="$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
+  build_description="Concourse build for PRQ #$prq_number @ $ATC_EXTERNAL_URL"
+
+  data=$(jq -cn "{
+    state: \"$build_state\",
+    key: \"$build_key\",
+    name: \"$build_name\",
+    url: \"$build_url\",
+    description: \"$build_description\"
+  }")
+
+  # set commit build status for source commit
+  bitbucket_pullrequest_commit_status "$repo_host" "$source_commit" "$data"
+
+  # use the current commit timestamp as date
+  prq_verify_date=$(git log -1 --format=format:%at)
+
+  # add comment to pull request to track if build was started/finished
+  comment_message=$(bitbucket_pullrequest_progress_comment "$status" "$prq_hash" "$source_commit" "$target_commit")
+  comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" | jq -c '.[]')
+  commented=""
+  skip_verify=false
+  if [ -n "$comments" ]; then
+    while read comment; do
+      id=$(echo "$comment" | jq -r '.id')
+      text=$(echo "$comment" | jq -r '.text')
+      version=$(echo "$comment" | jq -r '.version')
+
+      # check for progress messages => if pull request number matches then edit comment (instead of creating a new one)
+      if [ -z "$commented" ]; then
+        if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash" "Started"; then
+          bitbucket_pullrequest_update_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "$id" "$version" >/dev/null
+          commented=true
+        fi
+      fi
+
+      # edit timestamp to force new build when rebuild_phrase is included in comments
+      if [ "$skip_verify" == "true" ]; then
+        if echo "$text" | grep -Ec "$rebuild_phrase" > /dev/null; then
+          prq_verify_date=$(( ($(echo "$comment" | jq -r '.createdDate') + 500) / 1000))
+          skip_verify=true
+        fi
+      fi
+    done <<< "$comments"
+  fi
+
+  if [ -z "$commented" ]; then
+    bitbucket_pullrequest_add_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" >/dev/null
+  fi
+
+  jq -n "{
+    version: {
+      id: \"$prq_number\",
+      hash: \"$prq_hash\",
+      date: \"$(date -r "$prq_verify_date")\"
+    },
+    metadata: $(pullrequest_metadata "$prq_number" "$uri" )
+  }" >&3
+else
+  log "Can't determine pull request id for commit $ref"
+  jq -n "{}" >&3
+fi
