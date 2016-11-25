@@ -4,9 +4,7 @@ Tracks pull requests made to a Bitbucket repository.
 A status of pending, success, or failure will be set on the pull request, which must be explicitly defined in your pipeline.
 
 Currently only basic username/password authentication offers full functionality.
-Private key allows scanning for pull requests because this is pure git,
-but verifying merge status and setting status on pull requests is done through the Bitbucket REST Api for which
-SSH hasn't been tested yet.
+Private key allows scanning for pull requests because this is pure git, but verifying merge status and setting status on pull requests is done through the Bitbucket REST Api for which SSL hasn't been tested yet.
 
 ## Installing
 
@@ -21,8 +19,7 @@ resource_types:
     repository: laurentverbruggen/concourse-bitbucket-pullrequest-resource
 ```
 
-See [concourse docs](http://concourse.ci/configuring-resource-types.html) for more details
-on adding `resource_types` to a pipeline config.
+See [concourse docs](http://concourse.ci/configuring-resource-types.html) for more details on adding `resource_types` to a pipeline config.
 
 ## Source Configuration
 
@@ -40,16 +37,13 @@ on adding `resource_types` to a pipeline config.
     ```
 
 * `username`: *Optional.* Username for HTTP(S) auth when pulling/pushing.
-  This is needed when only HTTP/HTTPS protocol for git is available (which does not support private key auth)
-  and auth is required.
+  This is needed when only HTTP/HTTPS protocol for git is available (which does not support private key auth) and auth is required.
 
 * `password`: *Optional.* Password for HTTP(S) auth when pulling/pushing.
 
-* `skip_ssl_verification`: *Optional.* Skips git ssl verification by exporting
-  `GIT_SSL_NO_VERIFY=true`.
+* `skip_ssl_verification`: *Optional.* Skips git ssl verification by exporting `GIT_SSL_NO_VERIFY=true`.
 
-* `git_config`: *Optional*. If specified as (list of pairs `name` and `value`)
-  it will configure git global options, setting each name with each value.
+* `git_config`: *Optional*. If specified as (list of pairs `name` and `value`) it will configure git global options, setting each name with each value.
 
   This can be useful to set options like `credential.helper` or similar.
 
@@ -88,23 +82,16 @@ Submodules are initialized and updated recursively.
 
 #### Parameters
 
-* `depth`: *Optional.* If a positive integer is given, *shallow* clone the
-  repository using the `--depth` option. Using this flag voids your warranty.
+* `depth`: *Optional.* If a positive integer is given, *shallow* clone the repository using the `--depth` option. Using this flag voids your warranty.
   Some things will stop working unless we have the entire history.
 
-* `submodules`: *Optional.* If `none`, submodules will not be
-  fetched. If specified as a list of paths, only the given paths will be
-  fetched. If not specified, or if `all` is explicitly specified, all
-  submodules are fetched.
+* `submodules`: *Optional.* If `none`, submodules will not be fetched. If specified as a list of paths, only the given paths will be fetched. If not specified, or if `all` is explicitly specified, all submodules are fetched.
 
 * `disable_git_lfs`: *Optional.* If `true`, will not fetch Git LFS files.
 
 #### GPG signature verification
 
-If `commit_verification_keys` or `commit_verification_key_ids` is specified in
-the source configuration, it will additionally verify that the resulting commit
-has been GPG signed by one of the specified keys. It will error if this is not
-the case.
+If `commit_verification_keys` or `commit_verification_key_ids` is specified in the source configuration, it will additionally verify that the resulting commit has been GPG signed by one of the specified keys. It will error if this is not the case.
 
 ### `out`: Update the status of a pull request
 
@@ -115,8 +102,8 @@ Set the status message on specified pull request.
 * `path`: *Required.* The path of the repository to reference the pull request.
 
 * `status`: *Required.* The status of success, failure or pending.
- * [`on_success`](https://concourse.ci/on-success-step.html) and [`on_failure`](https://concourse.ci/on-failure-step.html)
- triggers may be useful for you when you wanted to reflect build result to the pull request (see the example below).
+
+  * [`on_success`](https://concourse.ci/on-success-step.html) and [`on_failure`](https://concourse.ci/on-failure-step.html) triggers may be useful for you when you wanted to reflect build result to the pull request (see the example below).
 
 ## Example pipeline
 
