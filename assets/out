@@ -65,7 +65,8 @@ cd "$path"
 merge_commit=$(git rev-parse HEAD)
 
 # collect prq id from git config stored in git config (during get step)
-prq_number=$(git config --get pullrequest.id)
+# included cat to catch error
+prq_number=$(git config --get pullrequest.id | cat)
 
 if [ -z "$prq_number" ]; then
   ls_remote=$(git ls-remote "$uri")
