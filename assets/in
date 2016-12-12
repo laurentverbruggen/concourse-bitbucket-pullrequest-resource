@@ -70,7 +70,7 @@ git clone $depthflag "$uri" "$destination"
 cd "$destination"
 
 git fetch $depthflag origin "+refs/${branch}:refs/remotes/origin/${branch}"
-git checkout "${branch}"
+git checkout -B $branch origin/$branch
 
 ref=$(git rev-parse HEAD)
 
