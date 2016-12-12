@@ -11,5 +11,8 @@ RUN apk --update add \
 RUN git config --global user.email "git@localhost" && \
     git config --global user.name "git"
 
+ADD scripts/install_git_lfs.sh install_git_lfs.sh
+RUN ./install_git_lfs.sh
+
 ADD assets/ /opt/resource/
 RUN chmod +x /opt/resource/*
