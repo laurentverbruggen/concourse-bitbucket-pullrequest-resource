@@ -117,3 +117,8 @@ uri_parser() {
     # return success
     return 0
 }
+
+date_from_millis() {
+  # Mac OS X: date -r $1
+  date -d @$1
+}

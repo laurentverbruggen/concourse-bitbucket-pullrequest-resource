@@ -170,7 +170,7 @@ if [ -n "$prq_number" ]; then
     version: {
       id: \"$prq_number\",
       hash: \"$prq_hash\",
-      date: \"$(date -r "$prq_verify_date")\"
+      date: \"$(date_from_millis "$prq_verify_date")\"
     },
     metadata: $(pullrequest_metadata "$prq_number" "$uri" )
   }" >&3
