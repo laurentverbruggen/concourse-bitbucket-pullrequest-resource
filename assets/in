@@ -53,18 +53,22 @@ if [ -z "$uri" ]; then
   exit 1
 fi
 
-depthflag=""
+if [ -z "$prq_id" ]; then
+  log "invalid payload (missing pull request id):" "$(cat "$payload")"
+  exit 1
+fi
+
+depthflag="--depth 1"
 if test "$depth" -gt 0 2> /dev/null; then
   depthflag="--depth $depth"
 fi
 
-mkdir -p "$destination"
-cd "$destination"
-
 branch="pull-requests/${prq_id}/merge"
 
-git init
-git remote add origin "$uri"
+log "Cloning $uri in $destination"
+git clone $depthflag "$uri" "$destination"
+cd "$destination"
+
 git fetch $depthflag origin "+refs/${branch}:refs/remotes/origin/${branch}"
 git checkout "${branch}"
 
@@ -111,6 +115,16 @@ fi
 if [ "$disable_git_lfs" != "true" ]; then
   git submodule foreach "git lfs fetch && git lfs checkout"
 fi
+
+# calculate source and target commit
+source_commit=$(git rev-list --parents -1 $ref | awk '{print $3}')
+target_commit=$(git rev-list --parents -1 $ref | awk '{print $2}')
+
+# expose configuration of pull request that can be used in container
+git config --add pullrequest.id $prq_id
+git config --add pullrequest.source_commit $source_commit
+git config --add pullrequest.target_commit $target_commit
+git config --add pullrequest.merge_commit $ref
 
 jq -n "{
   version: $(jq '.version' < "$payload"),
