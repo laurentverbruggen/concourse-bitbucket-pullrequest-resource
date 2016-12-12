@@ -58,7 +58,7 @@ if [ -z "$prq_id" ]; then
   exit 1
 fi
 
-depthflag="--depth 1"
+depthflag=""
 if test "$depth" -gt 0 2> /dev/null; then
   depthflag="--depth $depth"
 fi
@@ -119,6 +119,16 @@ fi
 # calculate source and target commit
 source_commit=$(git rev-list --parents -1 $ref | awk '{print $3}')
 target_commit=$(git rev-list --parents -1 $ref | awk '{print $2}')
+
+if [ -z "$source_commit" ]; then
+  log "Unable to determine source commit from merge commit $ref. Please verify depth configuration."
+  exit 1
+fi
+
+if [ -z "$target_commit" ]; then
+  log "Unable to determine target commit from merge commit $ref. Please verify depth configuration."
+  exit 1
+fi
 
 # expose configuration of pull request that can be used in container
 git config --add pullrequest.id $prq_id
