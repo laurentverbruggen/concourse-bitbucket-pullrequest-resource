@@ -115,12 +115,12 @@ if [ -n "$pull_requests" ]; then
 
       # add prq to versions
       if [ "$skip_build" == "false" ]; then
-        pretty_date=$(date_from_millis "$(( ($prq_verify_date + 500) / 1000))")
-        versions+=" + [{ id: \"$prq_number\", hash: \"$prq_hash\", date: \"$pretty_date\" }]"
+        pretty_date=$(date_from_epoch_seconds "$(( ($prq_verify_date + 500) / 1000))")
+        versions+=" + [{ id: \"$prq_number\", hash: \"$prq_hash\", date: \"$pretty_date\", change: $prq_verify_date }]"
       fi
 
     fi
   done <<< "$pull_requests"
 fi
 
-jq -n "$versions" >&3
+jq -n "$versions | sort_by(.change) | map(del(.change))"  >&3
