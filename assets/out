@@ -63,13 +63,13 @@ cd "$source"
 cd "$path"
 
 merge_commit=$(git rev-parse HEAD)
+ls_remote=$(git ls-remote "$uri")
 
 # collect prq id from git config stored in git config (during get step)
 # included cat to catch error
 prq_number=$(git config --get pullrequest.id | cat)
 
 if [ -z "$prq_number" ]; then
-  ls_remote=$(git ls-remote "$uri")
   prqs=$(echo "$ls_remote" | grep -E "/pull\-requests/[0-9]+" | grep "$merge_commit" | cat)
 
   # search for prq from commits in git ls-remote that match current commit
