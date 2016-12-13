@@ -162,11 +162,15 @@ if [ -n "$comments" ]; then
     fi
 
     # edit timestamp to force new build when rebuild_phrase is included in comments
-    if [ "$skip_verify" == "true" ]; then
+    if [ "$skip_verify" != "true" ]; then
       if echo "$text" | grep -Ec "$rebuild_phrase" > /dev/null; then
         prq_verify_date=$(( ($(echo "$comment" | jq -r '.createdDate') + 500) / 1000))
         skip_verify=true
       fi
+    fi
+
+    if [ "$skip_verify" == "true" -a "$commented" == "true" ]; then
+      break
     fi
   done <<< "$comments"
 fi
