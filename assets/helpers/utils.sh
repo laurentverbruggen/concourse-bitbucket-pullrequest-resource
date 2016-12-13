@@ -142,3 +142,7 @@ rawurlencode() {
 
   echo "${encoded}"
 }
+
+regex_escape() {
+  echo "$1" | sed 's/[^^]/[&]/g; s/\^/\\^/g'
+}

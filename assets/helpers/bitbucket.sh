@@ -108,15 +108,26 @@ bitbucket_pullrequest_overview_comments() {
         map({ id: .comment.id, version: .comment.version, text: .comment.text, createdDate: .comment.createdDate })'
 }
 
+bitbucket_pullrequest_progress_msg_start() {
+  # $1: pull request hash
+  # $2: type
+  local hash="$1"
+  local type="$2"
+
+  local build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
+  echo "[*Build$type* at **[${BUILD_PIPELINE_NAME} > ${BUILD_JOB_NAME}]($build_url_job)** for $hash"
+}
+
 bitbucket_pullrequest_progress_commit_match() {
   # $1: pull request comment
   # $2: pull request hash
-  # $3: type of build to match (default: Started|Finished)
+  # $3: type of build to match
   local comment="$1"
   local hash="$2"
-  local type=${3:-(Started|Finished)}
-  local build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
-  echo "$comment" | grep -Ec "^\[\*Build$type\* at \*\*\[${BUILD_PIPELINE_NAME} \> ${BUILD_JOB_NAME}\]\($build_url_job\)\*\* for $hash" > /dev/null
+  local type="$3"
+
+  local msg=$(bitbucket_pullrequest_progress_msg_start "$hash" "$type")
+  echo "$comment" | grep -Ec "^$(regex_escape "$msg")" > /dev/null
 }
 
 bitbucket_pullrequest_progress_comment() {
@@ -124,25 +135,26 @@ bitbucket_pullrequest_progress_comment() {
   # $2: hash of merge commit
   # $3: hash of source commit
   # $4: hash of target commit
-  local build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
-  local build_url="${build_url_job}/builds/$(rawurlencode "$BUILD_NAME")"
-  local build_status_pre="[*Build"
-  local build_status_post="* at **[${BUILD_PIPELINE_NAME} > ${BUILD_JOB_NAME}]($build_url_job)** for $2"
-  if [ "$2" == "$3" ]; then
-    build_status_post+=" into $4]"
+  local hash="$2"
+
+  local progress_msg_end=""
+  if [ "$hash" == "$3" ]; then
+    progress_msg_end+=" into $4]"
   else
-    build_status_post="] $3 into $4"
+    progress_msg_end="] $3 into $4"
   fi
+
+  local build_url="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")/builds/$(rawurlencode "$BUILD_NAME")"
   local build_result_pre=" \n\n **["
   local build_result_post="]($build_url)** - Build #$BUILD_NAME"
 
   case "$1" in
     success)
-      echo "${build_status_pre}Finished${build_status_post}${build_result_pre}✓ BUILD SUCCESS${build_result_post}" ;;
+      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Finished")${progress_msg_end}${build_result_pre}✓ BUILD SUCCESS${build_result_post}" ;;
     failure)
-      echo "${build_status_pre}Finished${build_status_post}${build_result_pre}✕ BUILD FAILED${build_result_post}" ;;
+      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Finished")${progress_msg_end}${build_result_pre}✕ BUILD FAILED${build_result_post}" ;;
     pending)
-      echo "${build_status_pre}Started${build_status_post}${build_result_pre}&#8987; BUILD IN PROGRESS${build_result_post}" ;;
+      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Started")${progress_msg_end}${build_result_pre}&#8987; BUILD IN PROGRESS${build_result_post}" ;;
   esac
 }
 
