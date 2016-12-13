@@ -132,9 +132,9 @@ fi
 
 # expose configuration of pull request that can be used in container
 git config --add pullrequest.id $prq_id
-git config --add pullrequest.source_commit $source_commit
-git config --add pullrequest.target_commit $target_commit
-git config --add pullrequest.merge_commit $ref
+git config --add pullrequest.source $source_commit
+git config --add pullrequest.target $target_commit
+git config --add pullrequest.merge $ref
 
 jq -n "{
   version: $(jq '.version' < "$payload"),
