@@ -123,8 +123,8 @@ bitbucket_pullrequest_progress_comment() {
   # $2: hash of merge commit
   # $3: hash of source commit
   # $4: hash of target commit
-  build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode $BUILD_TEAM_NAME)/pipelines/$(rawurlencode $BUILD_PIPELINE_NAME)/jobs/$(rawurlencode $BUILD_JOB_NAME)"
-  build_url="${build_url_job}/builds/$(rawurlencode $BUILD_NAME)"
+  build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
+  build_url="${build_url_job}/builds/$(rawurlencode "$BUILD_NAME")"
   build_status_pre="[*Build"
   build_status_post="* at **[${BUILD_PIPELINE_NAME} > ${BUILD_JOB_NAME}]($build_url_job)** for $2"
   if [ "$2" == "$3" ]; then
