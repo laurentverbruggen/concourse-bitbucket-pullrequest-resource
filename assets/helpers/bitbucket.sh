@@ -115,7 +115,8 @@ bitbucket_pullrequest_progress_commit_match() {
   local comment="$1"
   local hash="$2"
   local type=${3:-(Started|Finished)}
-  echo "$comment" | grep -Ec "^\[\*Build$type\* \*\*${BUILD_PIPELINE_NAME}\-${BUILD_JOB_NAME}\*\* for $hash" > /dev/null
+  local build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
+  echo "$comment" | grep -Ec "^\[\*Build$type\* at \*\*\[${BUILD_PIPELINE_NAME} \> ${BUILD_JOB_NAME}\]\($build_url_job\)\*\* for $hash" > /dev/null
 }
 
 bitbucket_pullrequest_progress_comment() {
@@ -123,17 +124,17 @@ bitbucket_pullrequest_progress_comment() {
   # $2: hash of merge commit
   # $3: hash of source commit
   # $4: hash of target commit
-  build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
-  build_url="${build_url_job}/builds/$(rawurlencode "$BUILD_NAME")"
-  build_status_pre="[*Build"
-  build_status_post="* at **[${BUILD_PIPELINE_NAME} > ${BUILD_JOB_NAME}]($build_url_job)** for $2"
+  local build_url_job="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")"
+  local build_url="${build_url_job}/builds/$(rawurlencode "$BUILD_NAME")"
+  local build_status_pre="[*Build"
+  local build_status_post="* at **[${BUILD_PIPELINE_NAME} > ${BUILD_JOB_NAME}]($build_url_job)** for $2"
   if [ "$2" == "$3" ]; then
     build_status_post+=" into $4]"
   else
     build_status_post="] $3 into $4"
   fi
-  build_result_pre=" \n\n **["
-  build_result_post="]($build_url)** - Build #$BUILD_NAME"
+  local build_result_pre=" \n\n **["
+  local build_result_post="]($build_url)** - Build #$BUILD_NAME"
 
   case "$1" in
     success)
