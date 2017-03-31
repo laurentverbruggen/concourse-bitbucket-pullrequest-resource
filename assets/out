@@ -185,5 +185,5 @@ jq -n "{
     hash: \"$prq_hash\",
     date: \"$(date_from_epoch_seconds "$prq_verify_date")\"
   },
-  metadata: $(pullrequest_metadata "$prq_number" "$uri" )
+  metadata: $(pullrequest_metadata "$prq_number" "$uri")
 }" >&3

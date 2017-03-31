@@ -66,7 +66,7 @@ add_pullrequest_metadata_commit() {
   local author_date=$(git log $filter --format=format:%ai)
   local committer=$(git log $filter --format=format:%cn)
   local committer_date=$(git log $filter --format=format:%ci)
-  local message=$(git log $filter --format=format:%B)
+  local message=$(git log $filter --format=format:%B | sed 's/\"/\\"/g')
 
   local metadata=""
   metadata+="{name: \"($1) commit\", value: \"${commit}\"},"

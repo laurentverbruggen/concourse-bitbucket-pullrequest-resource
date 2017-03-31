@@ -138,5 +138,5 @@ git config --add pullrequest.merge $ref
 
 jq -n "{
   version: $(jq '.version' < "$payload"),
-  metadata: $(pullrequest_metadata "$prq_id" "$uri" )
+  metadata: $(pullrequest_metadata "$prq_id" "$uri")
 }" >&3
