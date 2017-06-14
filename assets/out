@@ -148,7 +148,7 @@ comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" 
 commented=""
 skip_verify=false
 if [ -n "$comments" ]; then
-  while read comment; do
+  while read -r comment; do
     id=$(echo "$comment" | jq -r '.id')
     text=$(echo "$comment" | jq -r '.text')
     version=$(echo "$comment" | jq -r '.version')
