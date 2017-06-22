@@ -95,7 +95,7 @@ if [ -n "$pull_requests" ]; then
       skip_build=false
       comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" | jq -c '.[]')
       if [ -n "$comments" ]; then
-        while read comment; do
+        while read -r comment; do
           text=$(echo "$comment" | jq -r '.text')
 
           # check for progress or finished messages => do not include in versions when available
