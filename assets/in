@@ -31,9 +31,9 @@ payload=$(tmpfile request)
 cat > "$payload" <&0
 
 load_pubkey "$payload"
-configure_git_ssl_verification "$payload"
 configure_credentials "$payload"
 
+skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // false' < ${payload})
 uri=$(jq -r '.source.uri // ""' < "$payload")
 git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
 commit_verification_key_ids=$(jq -r '(.source.commit_verification_key_ids // [])[]' < "$payload")
@@ -46,6 +46,7 @@ disable_git_lfs=$(jq -r '(.params.disable_git_lfs // false)' < "$payload")
 
 prq_id=$(jq -r '.version.id // ""' < "$payload")
 
+configure_git_ssl_verification "$skip_ssl_verification"
 configure_git_global "${git_config_payload}"
 
 if [ -z "$uri" ]; then
@@ -138,5 +139,5 @@ git config --add pullrequest.merge $ref
 
 jq -n "{
   version: $(jq '.version' < "$payload"),
-  metadata: $(pullrequest_metadata "$prq_id" "$uri")
+  metadata: $(pullrequest_metadata "$prq_id" "$uri" "$skip_ssl_verification")
 }" >&3
