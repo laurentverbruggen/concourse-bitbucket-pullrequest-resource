@@ -121,7 +121,7 @@ repo_project=$(basename $(dirname "$uri"))
 
 # parse uri and retrieve host
 uri_parser "$uri"
-repo_host="${uri_schema}://${uri_address}"
+repo_host="${uri_schema}://${uri_address}"$(getBasePathOfBitbucket)
 
 # include ATC_EXTERNAL_URL in build status key, different sources should have different builds
 build_key="$BUILD_TEAM_NAME-$BUILD_PIPELINE_NAME-$BUILD_JOB_NAME-$ATC_EXTERNAL_URL"

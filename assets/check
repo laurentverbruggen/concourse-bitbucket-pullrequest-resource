@@ -68,18 +68,7 @@ if [ -n "$pull_requests" ]; then
   uri_parser "$uri"
   repo_host="${uri_schema}://${uri_address}"
 
-  # get base path in case bitbucket does not run on /
-  base_path=""
-  for i in "${!uri_parts[@]}"
-  do
-    if [ ${uri_parts[$i]} = "scm" ]; then
-      break
-    fi
-
-    base_path=$base_path"/"${uri_parts[$i]}
-  done
-
-  repo_host=${repo_host}${base_path}
+  repo_host=${repo_host}$(getBasePathOfBitbucket)
 
   versions="[]"
   while read pull_request ; do
