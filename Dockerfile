@@ -5,7 +5,8 @@ RUN apk --update add \
   bash \
   jq \
   curl \
-  git
+  git \
+  openssh-client
 
 # can't `git pull` unless we set these
 RUN git config --global user.email "git@localhost" && \
