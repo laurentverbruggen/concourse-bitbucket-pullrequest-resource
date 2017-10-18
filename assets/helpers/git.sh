@@ -27,8 +27,7 @@ configure_git_global() {
 }
 
 configure_git_ssl_verification() {
-  skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // false' < $1)
-  if [ "$skip_ssl_verification" = "true" ]; then
+  if [ "$1" = "true" ]; then
     export GIT_SSL_NO_VERIFY=true
   fi
 }
@@ -36,14 +35,15 @@ configure_git_ssl_verification() {
 add_pullrequest_metadata_basic() {
   # $1: pull request number
   # $2: pull request repository
+  # $3: skip ssl verification
   local repo_name=$(basename "$2" | sed "s/.git$//")
   local repo_project=$(basename $(dirname "$2"))
 
   # parse uri and retrieve host
   uri_parser "$2"
-  local repo_host="${uri_schema}://${uri_address}"
+  local repo_host="${uri_schema}://${uri_address}"$(getBasePathOfBitbucket)
 
-  local title=$(set -o pipefail; bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$1" | jq -r '.title')
+  local title=$(set -o pipefail; bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$1" "" "$3" | jq -r '.title')
   local commit=$(git rev-parse HEAD)
   local author=$(git log -1 --format=format:%an)
 
@@ -87,12 +87,13 @@ add_pullrequest_metadata_commit() {
 pullrequest_metadata() {
   # $1: pull request number
   # $2: pull request repository
+  # $3: skip ssl verification
 
   local source_commit=$(git rev-list --parents -1 $(git rev-parse HEAD) | awk '{print $3}')
   local target_commit=$(git rev-list --parents -1 $(git rev-parse HEAD) | awk '{print $2}')
 
   jq -n "[]" | \
-    add_pullrequest_metadata_basic "$1" "$2" | \
+    add_pullrequest_metadata_basic "$1" "$2" "$3" | \
     add_pullrequest_metadata_commit "source" "$source_commit" | \
     add_pullrequest_metadata_commit "target" "$target_commit"
 }

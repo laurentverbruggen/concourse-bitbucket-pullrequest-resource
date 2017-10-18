@@ -31,9 +31,9 @@ payload=$(tmpfile request)
 cat > "$payload" <&0
 
 load_pubkey "$payload"
-configure_git_ssl_verification "$payload"
 configure_credentials "$payload"
 
+skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // false' < ${payload})
 uri=$(jq -r '.source.uri // ""' < "$payload")
 git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
 rebuild_when_target_changed=$(jq -r '.source.rebuild_when_target_changed // "false"' < "$payload")
@@ -42,6 +42,7 @@ rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payloa
 path=$(jq -r '.params.path // ""' < "$payload")
 status=$(jq -r '.params.status // ""' < "$payload")
 
+configure_git_ssl_verification "$skip_ssl_verification"
 configure_git_global "${git_config_payload}"
 
 if [ -z "$uri" ]; then
@@ -120,7 +121,7 @@ repo_project=$(basename $(dirname "$uri"))
 
 # parse uri and retrieve host
 uri_parser "$uri"
-repo_host="${uri_schema}://${uri_address}"
+repo_host="${uri_schema}://${uri_address}"$(getBasePathOfBitbucket)
 
 # include ATC_EXTERNAL_URL in build status key, different sources should have different builds
 build_key="$BUILD_TEAM_NAME-$BUILD_PIPELINE_NAME-$BUILD_JOB_NAME-$ATC_EXTERNAL_URL"
@@ -137,14 +138,14 @@ data=$(jq -cn "{
 }")
 
 # set commit build status for source commit
-bitbucket_pullrequest_commit_status "$repo_host" "$source_commit" "$data"
+bitbucket_pullrequest_commit_status "$repo_host" "$source_commit" "$data" "" "" "$skip_ssl_verification"
 
 # use the current commit timestamp as date
 prq_verify_date=$(git log -1 --format=format:%at)
 
 # add comment to pull request to track if build was started/finished
 comment_message=$(bitbucket_pullrequest_progress_comment "$status" "$prq_hash" "$source_commit" "$target_commit")
-comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" | jq -c '.[]')
+comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification" | jq -c '.[]')
 commented=""
 skip_verify=false
 if [ -n "$comments" ]; then
@@ -156,7 +157,7 @@ if [ -n "$comments" ]; then
     # check for progress messages => if pull request number matches then edit comment (instead of creating a new one)
     if [ -z "$commented" ]; then
       if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash" "Started"; then
-        bitbucket_pullrequest_update_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "$id" "$version" >/dev/null
+        bitbucket_pullrequest_update_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "$id" "$version" "" "$skip_ssl_verification" >/dev/null
         commented=true
       fi
     fi
@@ -176,7 +177,7 @@ if [ -n "$comments" ]; then
 fi
 
 if [ -z "$commented" ]; then
-  bitbucket_pullrequest_add_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" >/dev/null
+  bitbucket_pullrequest_add_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "" "$skip_ssl_verification" >/dev/null
 fi
 
 jq -n "{
@@ -185,5 +186,5 @@ jq -n "{
     hash: \"$prq_hash\",
     date: \"$(date_from_epoch_seconds "$prq_verify_date")\"
   },
-  metadata: $(pullrequest_metadata "$prq_number" "$uri")
+  metadata: $(pullrequest_metadata "$prq_number" "$uri" "$skip_ssl_verification")
 }" >&3

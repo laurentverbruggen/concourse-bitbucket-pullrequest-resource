@@ -25,11 +25,12 @@ cat > "$payload" <&0
 
 log "Configuring git credentials"
 load_pubkey "$payload"
-configure_git_ssl_verification "$payload"
+
 configure_credentials "$payload"
 
 log "Parsing payload"
 uri=$(jq -r '.source.uri // ""' < "$payload")
+skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // false' < ${payload})
 git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
 
 only_for_branch=$(jq -r '.source.only_for_branch // "."' < "$payload")
@@ -39,6 +40,7 @@ only_when_asked=$(jq -r '.source.only_when_asked // "false"' < "$payload")
 rebuild_when_target_changed=$(jq -r '.source.rebuild_when_target_changed // "false"' < "$payload")
 rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payload")
 
+configure_git_ssl_verification "$skip_ssl_verification"
 configure_git_global "${git_config_payload}"
 
 if [ -z "$uri" ]; then
@@ -66,6 +68,8 @@ if [ -n "$pull_requests" ]; then
   uri_parser "$uri"
   repo_host="${uri_schema}://${uri_address}"
 
+  repo_host=${repo_host}$(getBasePathOfBitbucket)
+
   versions="[]"
   while read pull_request ; do
     log "Verifying pull request"
@@ -74,12 +78,19 @@ if [ -n "$pull_requests" ]; then
     prq_hash=$(echo "$pull_request" | awk '{print $1}')
 
     # verify target branch of prq
-    prq=$(bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$prq_number")
+    prq=$(bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
+
+    if [ "$prq" = "ERROR" ]; then
+      continue
+    fi
+
+    log "Pull request #${prq_number}"
+
     prq_to_branch=$(echo "$prq" | jq -r '.toRef.displayId')
     if [[ "$prq_to_branch" =~ $only_for_branch ]]; then
 
       if [ "$only_when_mergeable" == "true" -o "$only_without_conflicts" == "true" ]; then
-        prq_merge=$(bitbucket_pullrequest_merge "$repo_host" "$repo_project" "$repo_name" "$prq_number")
+        prq_merge=$(bitbucket_pullrequest_merge "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
 
         # verify if prq has merge conflicts
         conflicted=$(echo "$prq_merge" | jq -r '.conflicted')
@@ -93,7 +104,7 @@ if [ -n "$pull_requests" ]; then
       # edit timestamp to version to force new build when rebuild_phrase is included in comments
       prq_verify_date=$(echo "$prq" | jq -r '.createdDate')
       skip_build=false
-      comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" | jq -c '.[]')
+      comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification" | jq -c '.[]')
       if [ -n "$comments" ]; then
         while read -r comment; do
           text=$(echo "$comment" | jq -r '.text')
