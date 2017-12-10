@@ -120,7 +120,7 @@ resources:
   source:
     username: {{bitbucket-username}}
     password: {{bitbucket-password}}
-    repo: laurentverbruggen/concourse-bitbucket-pullrequest-resource
+    uri: laurentverbruggen/concourse-bitbucket-pullrequest-resource
 
 jobs:
 - name: test pull request
