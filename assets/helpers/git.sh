@@ -72,7 +72,7 @@ add_pullrequest_metadata_commit() {
   metadata+="{name: \"($1) commit\", value: \"${commit}\"},"
   metadata+="{name: \"($1) author\", value: \"${author}\"},"
   metadata+="{name: \"($1) author_date\", value: \"${author_date}\", type: \"time\"},"
-  metadata+="{name: \"($1) message\", value: \"${message}\", type: \"message\"}"
+  metadata+=$(jq -n --arg name "($1) message" --arg value "$message" '{name: $name, value: $value, type: "message"}')
 
   if [ "$author" != "$committer" ]; then
     metadata+=",{name: \"($1) committer\", value: \"${committer}\"}"
