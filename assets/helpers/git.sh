@@ -47,13 +47,19 @@ add_pullrequest_metadata_basic() {
   local commit=$(git rev-parse HEAD)
   local author=$(git log -1 --format=format:%an)
 
-  jq ". + [
-    {name: \"id\", value: \"${1}\"},
-    {name: \"title\", value: \"${title}\"},
-    {name: \"author\", value: \"${author}\"},
-    {name: \"commit (merged source in target)\", value: \"${commit}\"},
-    {name: \"repository\", value: \"${2}\"}
-  ]"
+  jq \
+    --arg id "$1" \
+    --arg title "$title" \
+    --arg author "$author" \
+    --arg commit "$commit" \
+    --arg repository "$2" \
+    '. + [
+      {name: "id", value: $id},
+      {name: "title", value: $title},
+      {name: "author", value: $author},
+      {name: "commit (merged source in target)", value: $commit},
+      {name: "repository", value: $repository}
+    ]'
 }
 
 add_pullrequest_metadata_commit() {
@@ -66,7 +72,7 @@ add_pullrequest_metadata_commit() {
   local author_date=$(git log $filter --format=format:%ai)
   local committer=$(git log $filter --format=format:%cn)
   local committer_date=$(git log $filter --format=format:%ci)
-  local message=$(git log $filter --format=format:%B | sed 's/\"/\\"/g')
+  local message=$(git log $filter --format=format:%B)
 
   local metadata=""
   metadata+="{name: \"($1) commit\", value: \"${commit}\"},"
