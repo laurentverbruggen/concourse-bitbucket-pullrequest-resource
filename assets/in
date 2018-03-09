@@ -45,6 +45,7 @@ submodules=$(jq -r '(.params.submodules // "all")' < "$payload")
 disable_git_lfs=$(jq -r '(.params.disable_git_lfs // false)' < "$payload")
 
 prq_id=$(jq -r '.version.id // ""' < "$payload")
+prq_date=$(jq -r '.version.date // ""' < "$payload")
 
 configure_git_ssl_verification "$skip_ssl_verification"
 configure_git_global "${git_config_payload}"
@@ -136,6 +137,7 @@ git config --add pullrequest.id $prq_id
 git config --add pullrequest.source $source_commit
 git config --add pullrequest.target $target_commit
 git config --add pullrequest.merge $ref
+git config --add pullrequest.date "$prq_date"
 
 jq -n "{
   version: $(jq '.version' < "$payload"),
