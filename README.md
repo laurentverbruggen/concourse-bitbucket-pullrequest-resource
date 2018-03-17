@@ -1,6 +1,4 @@
-<aside class="notice">
-This resource is no longer actively maintained.
-</aside>
+> This resource is no longer actively maintained.
 
 # Concourse Bitbucket Pull Request Resource
 
