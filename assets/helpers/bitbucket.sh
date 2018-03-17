@@ -143,6 +143,16 @@ bitbucket_pullrequest_progress_commit_match() {
   echo "$comment" | grep -Ec "^$(regex_escape "$msg")" > /dev/null
 }
 
+bitbucket_pullrequest_comment_commit_match() {
+  # $1: pull request comment
+  # $2: pull request hash
+  local comment="$1"
+  local hash="$2"
+
+  local msg=")** for $hash into"
+  echo "$comment" | grep -Ec "$(regex_escape "$msg")" > /dev/null
+}
+
 bitbucket_pullrequest_progress_comment() {
   # $1: status (success, failure or pending)
   # $2: hash of merge commit

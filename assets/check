@@ -110,7 +110,7 @@ if [ -n "$pull_requests" ]; then
           text=$(echo "$comment" | jq -r '.text')
 
           # check for progress or finished messages => do not include in versions when available
-          if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash"; then
+          if bitbucket_pullrequest_comment_commit_match "$text" "$prq_hash"; then
             log "Skipping PRQ #$prq_number since already handled"
             skip_build=true
             break
