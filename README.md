@@ -1,3 +1,7 @@
+<aside class="notice">
+This resource is no longer actively maintained.
+</aside>
+
 # Concourse Bitbucket Pull Request Resource
 
 Tracks pull requests made to a Bitbucket repository.
