@@ -8,6 +8,8 @@ A status of pending, success, or failure will be set on the pull request, which 
 Currently only basic username/password authentication offers full functionality.
 Private key allows scanning for pull requests because this is pure git, but verifying merge status and setting status on pull requests is done through the Bitbucket REST Api for which SSL hasn't been tested yet.
 
+> This resource was made for Bitbucket Server and will probably not work for Bitbucket Cloud.
+
 ## Installing
 
 Use this resource by adding the following to the `resource_types` section of a pipeline config:
