@@ -1,4 +1,8 @@
-> This resource is no longer actively maintained.
+This resource is a fork of
+https://github.com/laurentverbruggen/concourse-bitbucket-pullrequest-resource.
+
+That resource is no longer maintained but this one will continue to be
+developed.
 
 # Concourse Bitbucket Pull Request Resource
 
