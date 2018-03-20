@@ -38,6 +38,7 @@ uri=$(jq -r '.source.uri // ""' < "$payload")
 git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
 rebuild_when_target_changed=$(jq -r '.source.rebuild_when_target_changed // "false"' < "$payload")
 rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payload")
+create_comments=$(jq -r '.source.create_comments // "false"' < "$payload")
 
 path=$(jq -r '.params.path // ""' < "$payload")
 status=$(jq -r '.params.status // ""' < "$payload")
@@ -156,7 +157,7 @@ if [ -n "$comments" ]; then
 
     # check for progress messages => if pull request number matches then edit comment (instead of creating a new one)
     if [ -z "$commented" ]; then
-      if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash" "Started"; then
+      if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash" "Started" && [ "$create_comments" == "true" ]; then
         bitbucket_pullrequest_update_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "$id" "$version" "" "$skip_ssl_verification" >/dev/null
         commented=true
       fi
@@ -176,7 +177,7 @@ if [ -n "$comments" ]; then
   done <<< "$comments"
 fi
 
-if [ -z "$commented" ]; then
+if [ -z "$commented" ] && [ "$create_comments" == "true" ]; then
   bitbucket_pullrequest_add_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "" "$skip_ssl_verification" >/dev/null
 fi
 
