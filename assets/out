@@ -142,13 +142,12 @@ data=$(jq -cn "{
 bitbucket_pullrequest_commit_status "$repo_host" "$source_commit" "$data" "" "" "$skip_ssl_verification"
 
 # use the pullrequest date stored in git config in get
-prq_verify_date=$(git config --get pullrequest.date | cat)
+PULL_REQUEST_DATE=$(git config --get pullrequest.date | cat)
 
 # add comment to pull request to track if build was started/finished
 comment_message=$(bitbucket_pullrequest_progress_comment "$status" "$prq_hash" "$source_commit" "$target_commit")
 comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification" | jq -c '.[]')
 commented=""
-skip_verify=false
 if [ -n "$comments" ]; then
   while read -r comment; do
     id=$(echo "$comment" | jq -r '.id')
@@ -156,22 +155,9 @@ if [ -n "$comments" ]; then
     version=$(echo "$comment" | jq -r '.version')
 
     # check for progress messages => if pull request number matches then edit comment (instead of creating a new one)
-    if [ -z "$commented" ]; then
-      if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash" "Started" && [ "$create_comments" == "true" ]; then
-        bitbucket_pullrequest_update_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "$id" "$version" "" "$skip_ssl_verification" >/dev/null
-        commented=true
-      fi
-    fi
-
-    # edit timestamp to force new build when rebuild_phrase is included in comments
-    if [ "$skip_verify" != "true" ]; then
-      if echo "$text" | grep -Ec "$rebuild_phrase" > /dev/null; then
-        prq_verify_date=$(date_from_epoch_seconds $(( ($(echo "$comment" | jq -r '.createdDate') + 500) / 1000)))
-        skip_verify=true
-      fi
-    fi
-
-    if [ "$skip_verify" == "true" -a "$commented" == "true" ]; then
+    if bitbucket_pullrequest_progress_commit_match "$text" "$prq_hash" "Started" && [ "$create_comments" == "true" ]; then
+      bitbucket_pullrequest_update_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "$id" "$version" "" "$skip_ssl_verification" >/dev/null
+      commented=true
       break
     fi
   done <<< "$comments"
@@ -185,7 +171,7 @@ jq -n "{
   version: {
     id: \"$prq_number\",
     hash: \"$prq_hash\",
-    date: \"$prq_verify_date\"
+    date: \"$PULL_REQUEST_DATE\"
   },
   metadata: $(pullrequest_metadata "$prq_number" "$uri" "$skip_ssl_verification")
 }" >&3
