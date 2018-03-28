@@ -140,7 +140,7 @@ fi
 
 # On the first request return only the current version.
 if [ "$CURRENT_VERSION_DATE" -eq "0" ]; then
-  jq -n "$versions | sort_by((.date | tonumber), (.id | tonumber), .hash) | .[-1]" > /tmp/check_result
+  jq -n "$versions | sort_by((.date | tonumber), (.id | tonumber), .hash) | .[-1:]" > /tmp/check_result
 else
   jq -n "$versions | sort_by((.date | tonumber), (.id | tonumber), .hash)" > /tmp/check_result
 fi
