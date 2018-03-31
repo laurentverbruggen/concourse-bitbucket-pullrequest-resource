@@ -21,10 +21,10 @@ Use this resource by adding the following to the `resource_types` section of a p
 ```yaml
 ---
 resource_types:
-- name: concourse-bitbucket-pullrequest
-  type: docker-image
-  source:
-    repository: mm62/concourse-bitbucket-pullrequest-resource
+  - name: concourse-bitbucket-pullrequest
+    type: docker-image
+    source:
+      repository: mm62/concourse-bitbucket-pullrequest-resource
 ```
 
 See [concourse docs](https://concourse-ci.org/resource-types.html) for more details on adding `resource_types` to a pipeline config.
@@ -119,46 +119,46 @@ Set the status message on specified pull request.
 
 ```yaml
 resource_types:
-- name: concourse-bitbucket-pullrequest
-  type: docker-image
-  source:
-    repository: mm62/concourse-bitbucket-pullrequest-resource
+  - name: concourse-bitbucket-pullrequest
+    type: docker-image
+    source:
+      repository: mm62/concourse-bitbucket-pullrequest-resource
 
 resources:
-- name: pullrequest
-  type: concourse-bitbucket-pullrequest
-  source:
-    username: {{bitbucket-username}}
-    password: {{bitbucket-password}}
-    uri: https://your-bitbucket.com/project/repo
+  - name: pullrequest
+    type: concourse-bitbucket-pullrequest
+    source:
+      username: {{bitbucket-username}}
+      password: {{bitbucket-password}}
+      uri: https://your-bitbucket.com/project/repo
 
 jobs:
-- name: test pull request
-  plan:
-  - get: pullrequest
-    trigger: true
-    version: every
-  - put: pullrequest
-    params:
-      path: pullrequest
-      status: pending
-  - task: test
-    config:
-      platform: linux
+  - name: test pull request
+    plan:
+      - get: pullrequest
+        trigger: true
+        version: every
+      - put: pullrequest
+        params:
+          path: pullrequest
+          status: pending
+      - task: test
+        config:
+          platform: linux
 
-      inputs:
-      - name: pullrequest
+          inputs:
+          - name: pullrequest
 
-      ...
+          ...
 
-    on_success:
-      put: pullrequest
-      params:
-        path: pullrequest
-        status: success
-    on_failure:
-      put: pullrequest
-      params:
-        path: pullrequest
-        status: failure
+      on_success:
+        put: pullrequest
+        params:
+          path: pullrequest
+          status: success
+      on_failure:
+        put: pullrequest
+        params:
+          path: pullrequest
+          status: failure
 ```
