@@ -24,7 +24,7 @@ resource_types:
 - name: concourse-bitbucket-pullrequest
   type: docker-image
   source:
-    repository: laurentverbruggen/concourse-bitbucket-pullrequest-resource
+    repository: mm62/concourse-bitbucket-pullrequest-resource
 ```
 
 See [concourse docs](https://concourse-ci.org/resource-types.html) for more details on adding `resource_types` to a pipeline config.
@@ -122,7 +122,7 @@ resource_types:
 - name: concourse-bitbucket-pullrequest
   type: docker-image
   source:
-    repository: laurentverbruggen/concourse-bitbucket-pullrequest-resource
+    repository: mm62/concourse-bitbucket-pullrequest-resource
 
 resources:
 - name: pullrequest
@@ -130,7 +130,7 @@ resources:
   source:
     username: {{bitbucket-username}}
     password: {{bitbucket-password}}
-    uri: laurentverbruggen/concourse-bitbucket-pullrequest-resource
+    uri: https://your-bitbucket.com/project/repo
 
 jobs:
 - name: test pull request
