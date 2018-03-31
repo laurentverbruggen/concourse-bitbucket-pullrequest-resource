@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mmb/concourse-bitbucket-pullrequest-resource.svg?branch=master)](https://travis-ci.org/mmb/concourse-bitbucket-pullrequest-resource)
+
 This resource is a fork of
 https://github.com/laurentverbruggen/concourse-bitbucket-pullrequest-resource.
 
