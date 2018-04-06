@@ -6,7 +6,7 @@ RUN apk --no-cache add \
   curl=7.59.0-r0 \
   git=2.16.3-r0 \
   jq=1.5-r5 \
-  openssh-client=7.6_p1-r1
+  openssh-client=7.7_p1-r0
 
 # can't `git pull` unless we set these
 RUN git config --global user.email "git@localhost" && \

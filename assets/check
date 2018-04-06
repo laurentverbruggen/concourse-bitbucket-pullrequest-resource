@@ -56,10 +56,13 @@ if [ "$rebuild_when_target_changed" == "true" ]; then
 fi
 
 # collect all pull requests from uri
-pull_requests=$(git ls-remote "$uri" | grep -E "/pull\-requests/[0-9]+/${prq_branch}" | cat)
+REMOTES=$(git ls-remote "$uri")
+set +e
+PULL_REQUESTS=$(echo "$REMOTES" | grep -E "/pull\\-requests/[0-9]+/${prq_branch}")
+set -e
 
 versions="[]"
-if [ -n "$pull_requests" ]; then
+if [ -n "$PULL_REQUESTS" ]; then
   log "Calculating repository specifics"
   # determine repository name for calling REST api
   repo_name=$(basename "$uri" | sed "s/.git$//")
@@ -135,7 +138,7 @@ if [ -n "$pull_requests" ]; then
         versions+=" + [{ id: \"$prq_number\", hash: \"$prq_hash\", date: \"$PULL_REQUEST_DATE\" }]"
       fi
     fi
-  done <<< "$pull_requests"
+  done <<< "$PULL_REQUESTS"
 fi
 
 # On the first request return only the current version.
