@@ -92,6 +92,8 @@ It will allow you to build all versions instead of only the latest.
 
 Submodules are initialized and updated recursively.
 
+Note: the name of the branch from which the pull request has been created is stored in the special git config `pullrequest.branch` so that you can use it as reference in your pipeline.
+
 #### Parameters
 
 * `depth`: *Optional.* If a positive integer is given, *shallow* clone the repository using the `--depth` option. Using this flag voids your warranty.

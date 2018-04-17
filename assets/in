@@ -132,12 +132,30 @@ if [ -z "$target_commit" ]; then
   exit 1
 fi
 
+# parse uri and retrieve host
+uri_parser "$uri"
+repo_host="${uri_schema}://${uri_address}"
+repo_host=${repo_host}$(getBasePathOfBitbucket)
+
+# determine repository name for calling REST api
+repo_name=$(basename "$uri" | sed "s/.git$//")
+repo_project=$(basename $(dirname "$uri"))
+
+# verify target branch of prq
+prq=$(bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$prq_id" "" "$skip_ssl_verification")
+
+if [ "$prq" != "ERROR" ]; then
+  branch=$(echo "$prq" | jq -r '.fromRef.displayId')
+fi
+
+
 # expose configuration of pull request that can be used in container
 git config --add pullrequest.id $prq_id
 git config --add pullrequest.source $source_commit
 git config --add pullrequest.target $target_commit
 git config --add pullrequest.merge $ref
 git config --add pullrequest.date "$prq_date"
+git config --add pullrequest.branch "$branch"
 
 jq -n "{
   version: $(jq '.version' < "$payload"),
