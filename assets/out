@@ -41,6 +41,8 @@ rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payloa
 
 path=$(jq -r '.params.path // ""' < "$payload")
 status=$(jq -r '.params.status // ""' < "$payload")
+additionnal_comment=$(jq -r '.params.comment // ""' < "$payload")
+additionnal_comment_file=$(jq -r '.params.commentFile // ""' < "$payload")
 
 configure_git_ssl_verification "$skip_ssl_verification"
 configure_git_global "${git_config_payload}"
@@ -61,14 +63,20 @@ if [ -z "$status" ]; then
 fi
 
 cd "$source"
+
+if [ -n "$additionnal_comment_file" ]; then
+  additionnal_comment="$(<${additionnal_comment_file})"
+fi
+
 cd "$path"
 
 merge_commit=$(git rev-parse HEAD)
 ls_remote=$(git ls-remote "$uri")
 
-# collect prq id from git config stored in git config (during get step)
+# collect prq id and branch name from git config stored in git config (during get step)
 # included cat to catch error
 prq_number=$(git config --get pullrequest.id | cat)
+branch=$(git config --get pullrequest.branch | cat)
 
 if [ -z "$prq_number" ]; then
   prqs=$(echo "$ls_remote" | grep -E "/pull\-requests/[0-9]+" | grep "$merge_commit" | cat)
@@ -143,8 +151,13 @@ bitbucket_pullrequest_commit_status "$repo_host" "$source_commit" "$data" "" "" 
 # use the pullrequest date stored in git config in get
 prq_verify_date=$(git config --get pullrequest.date | cat)
 
+# Add branch name to additional comment
+if [ -n "$additionnal_comment" ]; then
+  additionnal_comment="${additionnal_comment//\[\[BRANCH\]\]/$branch}"
+fi
+
 # add comment to pull request to track if build was started/finished
-comment_message=$(bitbucket_pullrequest_progress_comment "$status" "$prq_hash" "$source_commit" "$target_commit")
+comment_message=$(bitbucket_pullrequest_progress_comment "$status" "$prq_hash" "$source_commit" "$target_commit", "$additionnal_comment")
 comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification" | jq -c '.[]')
 commented=""
 skip_verify=false
