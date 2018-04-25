@@ -164,13 +164,20 @@ bitbucket_pullrequest_progress_comment() {
   # $2: hash of merge commit
   # $3: hash of source commit
   # $4: hash of target commit
+  # $5: custom comment
   local hash="$2"
 
   local progress_msg_end=""
+  local custom_comment=""
+
   if [ "$hash" == "$3" ]; then
     progress_msg_end+=" into $4]"
   else
     progress_msg_end="] $3 into $4"
+  fi
+
+  if [ -n "$5" ]; then
+    custom_comment="\n\n$5"
   fi
 
   local build_url="$ATC_EXTERNAL_URL/teams/$(rawurlencode "$BUILD_TEAM_NAME")/pipelines/$(rawurlencode "$BUILD_PIPELINE_NAME")/jobs/$(rawurlencode "$BUILD_JOB_NAME")/builds/$(rawurlencode "$BUILD_NAME")"
@@ -179,11 +186,11 @@ bitbucket_pullrequest_progress_comment() {
 
   case "$1" in
     success)
-      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Finished")${progress_msg_end}${build_result_pre}✓ BUILD SUCCESS${build_result_post}" ;;
+      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Finished")${progress_msg_end}${build_result_pre}✓ BUILD SUCCESS${build_result_post}${custom_comment}" ;;
     failure)
-      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Finished")${progress_msg_end}${build_result_pre}✕ BUILD FAILED${build_result_post}" ;;
+      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Finished")${progress_msg_end}${build_result_pre}✕ BUILD FAILED${build_result_post}${custom_comment}" ;;
     pending)
-      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Started")${progress_msg_end}${build_result_pre}&#8987; BUILD IN PROGRESS${build_result_post}" ;;
+      echo "$(bitbucket_pullrequest_progress_msg_start "$hash" "Started")${progress_msg_end}${build_result_pre}&#8987; BUILD IN PROGRESS${build_result_post}${custom_comment}" ;;
   esac
 }
 
