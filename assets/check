@@ -84,7 +84,7 @@ if [ -n "$PULL_REQUESTS" ]; then
     # verify target branch of prq
     prq=$(bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
 
-    if [ "$prq" = "ERROR" ]; then
+    if [ "$prq" = "NO_SUCH_PULL_REQUEST" ]; then
       continue
     fi
 
@@ -97,6 +97,10 @@ if [ -n "$PULL_REQUESTS" ]; then
 
       if [ "$only_when_mergeable" == "true" -o "$only_without_conflicts" == "true" ]; then
         prq_merge=$(bitbucket_pullrequest_merge "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
+
+        if [ "$prq_merge" = "ALREADY_MERGED" ]; then
+          continue
+        fi
 
         # verify if prq has merge conflicts
         conflicted=$(echo "$prq_merge" | jq -r '.conflicted')

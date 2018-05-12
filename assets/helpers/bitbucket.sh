@@ -72,8 +72,11 @@ bitbucket_request() {
     jq -c '.values' < "$request_result"
   elif [ "$(jq -c '.errors' < "$request_result")" == "null" ]; then
     jq '.' < "$request_result"
-  elif [ "${request_result/NoSuchPullRequestException}" = "${request_result}" ]; then
-    printf "ERROR"
+  elif grep -q NoSuchPullRequestException "$request_result"; then
+    printf "NO_SUCH_PULL_REQUEST"
+    return
+  elif grep -q 'This pull request has already been merged' "$request_result"; then
+    printf "ALREADY_MERGED"
     return
   else
     log "Bitbucket request ($request_url) failed: $(cat $request_result)"
