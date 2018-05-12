@@ -17,5 +17,5 @@ docker run --interactive --rm --volume "$PWD:/mnt" koalaman/shellcheck \
   /mnt/scripts/test
 set -e
 
-docker build --rm --tag mm62/concourse-bitbucket-pullrequest-resource-test .
+docker build --pull --rm --tag mm62/concourse-bitbucket-pullrequest-resource-test .
 docker rmi mm62/concourse-bitbucket-pullrequest-resource-test
