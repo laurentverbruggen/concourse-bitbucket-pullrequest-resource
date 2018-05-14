@@ -98,7 +98,7 @@ if [ -n "$PULL_REQUESTS" ]; then
       if [ "$only_when_mergeable" == "true" -o "$only_without_conflicts" == "true" ]; then
         prq_merge=$(bitbucket_pullrequest_merge "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
 
-        if [ "$prq_merge" = "ALREADY_MERGED" ]; then
+        if [ "$prq_merge" = "ALREADY_MERGED" ] || [ "$prq_merge" = "DECLINED" ]; then
           continue
         fi
 
