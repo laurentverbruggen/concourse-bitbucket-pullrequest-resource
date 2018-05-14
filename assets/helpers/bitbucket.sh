@@ -78,6 +78,9 @@ bitbucket_request() {
   elif grep -q 'This pull request has already been merged' "$request_result"; then
     printf "ALREADY_MERGED"
     return
+  elif grep -q 'This pull request has been declined and must be reopened before it can be merged' "$request_result"; then
+    printf "DECLINED"
+    return
   else
     log "Bitbucket request ($request_url) failed: $(cat $request_result)"
     exit 1
