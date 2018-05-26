@@ -51,6 +51,9 @@ See [concourse docs](https://concourse-ci.org/resource-types.html) for more deta
 
 * `password`: *Optional.* Password for HTTP(S) auth when pulling/pushing.
 
+* `token`: *Optional.* Token for HTTP(S) auth when pulling/pushing.
+  If you have configured a [personal access token](https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html), you can use it instead of your username and password.
+
 * `skip_ssl_verification`: *Optional.* Skips git ssl verification by exporting `GIT_SSL_NO_VERIFY=true`.
 
 * `git_config`: *Optional*. If specified as (list of pairs `name` and `value`) it will configure git global options, setting each name with each value.
