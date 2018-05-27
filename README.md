@@ -1,4 +1,4 @@
-> This resource is no longer actively maintained.
+> This resource is no longer actively maintained. Please refer to a maintained fork here: https://github.com/mmb/concourse-bitbucket-pullrequest-resource. Any pull requests here will not be merged. Instead do them on the forementioned fork.
 
 # Concourse Bitbucket Pull Request Resource
 
