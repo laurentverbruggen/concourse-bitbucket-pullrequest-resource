@@ -91,13 +91,7 @@ if [ -z "$prq_number" ]; then
   exit 1
 fi
 
-# if option 'rebuild_when_target_changed' is enabled take merge branch since commit will always change for changes on target branch
-prq_branch="from"
-if [ "$rebuild_when_target_changed" == "true" ]; then
-  prq_branch="merge"
-fi
-
-prq_hash=$(echo "$ls_remote" | grep -E "/pull\-requests/${prq_number}/${prq_branch}" | awk '{print $1}')
+prq_hash=$(echo "$ls_remote" | grep -E "/pull\-requests/${prq_number}/from" | awk '{print $1}')
 
 if [ -z "$prq_hash" ]; then
   log "Failed to determine pull request hash from id $prq_number in \n$ls_remote"
@@ -193,10 +187,17 @@ if [ -z "$commented" ]; then
   bitbucket_pullrequest_add_comment_status "$repo_host" "$repo_project" "$repo_name" "$prq_number" "$comment_message" "" "$skip_ssl_verification" >/dev/null
 fi
 
+
+to_hash=""
+if [ "$rebuild_when_target_changed" == "true" ]; then
+  to_hash="$target_commit"
+fi
+
 jq -n "{
   version: {
     id: \"$prq_number\",
-    hash: \"$prq_hash\",
+    from: \"$source_commit\",
+    to: \"$to_hash\",
     date: \"$prq_verify_date\"
   },
   metadata: $(pullrequest_metadata "$prq_number" "$uri" "$skip_ssl_verification")

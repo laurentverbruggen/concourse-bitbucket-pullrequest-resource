@@ -2,6 +2,7 @@
 # vim: set ft=sh
 
 set -e
+set -o pipefail
 
 exec 3>&1 # make stdout available as fd 3 for the result
 exec 1>&2 # redirect all output to stderr for logging
@@ -48,45 +49,27 @@ if [ -z "$uri" ]; then
   exit 1
 fi
 
-# if option 'rebuild_when_target_changed' is enabled take merge branch since commit will always change for changes on target branch
-prq_branch="from"
-if [ "$rebuild_when_target_changed" == "true" ]; then
-  prq_branch="merge"
-fi
-
-# collect all pull requests from uri
-pull_requests=$(git ls-remote "$uri" | grep -E "/pull\-requests/[0-9]+/${prq_branch}" | cat)
-
 versions="[]"
+
+log "Calculating repository specifics"
+# determine repository name for calling REST api
+repo_name=$(basename "$uri" | sed "s/.git$//")
+repo_project=$(basename $(dirname "$uri"))
+
+# parse uri and retrieve host
+uri_parser "$uri"
+repo_host="${uri_schema}://${uri_address}"
+
+repo_host=${repo_host}$(getBasePathOfBitbucket)
+
+# collect all pull requests from uri and loop on them
+pull_requests=$(bitbucket_pullrequests "$repo_host" "$repo_project" "$repo_name" "" "$skip_ssl_verification" |
+  jq -r '.[] | [.id, .fromRef.latestCommit, .toRef.latestCommit, .toRef.displayId, .createdDate]|@tsv')
+
 if [ -n "$pull_requests" ]; then
-  log "Calculating repository specifics"
-  # determine repository name for calling REST api
-  repo_name=$(basename "$uri" | sed "s/.git$//")
-  repo_project=$(basename $(dirname "$uri"))
+  while IFS=$'\t' read -r prq_number from_hash to_hash prq_to_branch prq_verify_date; do
+    log "Verifying pull request #${prq_number}"
 
-  # parse uri and retrieve host
-  uri_parser "$uri"
-  repo_host="${uri_schema}://${uri_address}"
-
-  repo_host=${repo_host}$(getBasePathOfBitbucket)
-
-  versions="[]"
-  while read pull_request ; do
-    log "Verifying pull request"
-    # determine hash and prq number from grep
-    prq_number=$(echo "$pull_request" | sed -E "s/^.*\/pull-requests\/([0-9]+)\/.*$/\\1/")
-    prq_hash=$(echo "$pull_request" | awk '{print $1}')
-
-    # verify target branch of prq
-    prq=$(bitbucket_pullrequest "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
-
-    if [ "$prq" = "ERROR" ]; then
-      continue
-    fi
-
-    log "Pull request #${prq_number}"
-
-    prq_to_branch=$(echo "$prq" | jq -r '.toRef.displayId')
     if [[ "$prq_to_branch" =~ $only_for_branch ]]; then
 
       if [ "$only_when_mergeable" == "true" -o "$only_without_conflicts" == "true" ]; then
@@ -102,7 +85,6 @@ if [ -n "$pull_requests" ]; then
       fi
 
       # edit timestamp to version to force new build when rebuild_phrase is included in comments
-      prq_verify_date=$(echo "$prq" | jq -r '.createdDate')
       skip_build=false
       comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification" | jq -c '.[]')
       if [ -n "$comments" ]; then
@@ -110,7 +92,11 @@ if [ -n "$pull_requests" ]; then
           text=$(echo "$comment" | jq -r '.text')
 
           # check for progress or finished messages => do not include in versions when available
-          if bitbucket_pullrequest_comment_commit_match "$text" "$prq_hash"; then
+          hash="$from_hash"
+          if [ "$rebuild_when_target_changed" == "true" ]; then
+            hash="$to_hash"
+          fi
+          if bitbucket_pullrequest_comment_commit_match "$text" "$hash"; then
             log "Skipping PRQ #$prq_number since already handled"
             skip_build=true
             break
@@ -127,7 +113,12 @@ if [ -n "$pull_requests" ]; then
       # add prq to versions
       if [ "$skip_build" == "false" ]; then
         pretty_date=$(date_from_epoch_seconds "$(( ($prq_verify_date + 500) / 1000))")
-        versions+=" + [{ id: \"$prq_number\", hash: \"$prq_hash\", date: \"$pretty_date\", change: $prq_verify_date }]"
+
+        if [ "$rebuild_when_target_changed" == "false" ]; then
+          to_hash=""
+        fi
+
+        versions+=" + [{ id: \"$prq_number\", from: \"$from_hash\", to: \"$to_hash\", date: \"$pretty_date\", change: $prq_verify_date }]"
       fi
 
     fi
