@@ -1,4 +1,5 @@
-> This resource is no longer actively maintained. Please refer to a maintained fork here: https://github.com/mmb/concourse-bitbucket-pullrequest-resource. Any pull requests here will not be merged. Instead do them on the forementioned fork.
+> This resource is no longer actively maintained. Please refer to a maintained fork here: https://github.com/mmb/concourse-bitbucket-pullrequest-resource. <br>
+> Any pull requests should be done on the forementioned fork. They won't be merged here!
 
 # Concourse Bitbucket Pull Request Resource
 
