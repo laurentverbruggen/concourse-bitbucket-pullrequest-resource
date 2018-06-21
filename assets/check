@@ -29,6 +29,9 @@ load_pubkey "$payload"
 configure_credentials "$payload"
 
 log "Parsing payload"
+trace_sw=$(jq -r '.source.trace // ""' < "$payload")
+[[ "$trace_sw" == "true" ]] && set -x || true
+
 uri=$(jq -r '.source.uri // ""' < "$payload")
 skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // false' < ${payload})
 git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
@@ -91,6 +94,11 @@ if [ -n "$pull_requests" ]; then
 
       if [ "$only_when_mergeable" == "true" -o "$only_without_conflicts" == "true" ]; then
         prq_merge=$(bitbucket_pullrequest_merge "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification")
+
+        if [ "$prq_merge" = "ERROR" ]; then
+          #continue if already merged
+          continue
+        fi
 
         # verify if prq has merge conflicts
         conflicted=$(echo "$prq_merge" | jq -r '.conflicted')

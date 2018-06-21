@@ -71,6 +71,7 @@ It will accept a regular expression as determined by [egrep](http://linuxcommand
 
 * `rebuild_phrase`: *Optional (default: test this please).* Regular expression as determined by [egrep](http://linuxcommand.org/man_pages/egrep1.html) will match all comments in pull request overview.
 If a match is found the pull request will be rebuilt.
+* `trace`: *Optional (default: false).* If set to `true`, scripts will run with `-x` to echo the actual commands. Useful for debugging.
 
 ## Behavior
 

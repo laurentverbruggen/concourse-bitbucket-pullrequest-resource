@@ -1,16 +1,16 @@
 #!/bin/sh
 
-set -eu
+set -eux
 
 _main() {
   local tmpdir
   tmpdir="$(mktemp -d git_lfs_install.XXXXXX)"
 
   cd "$tmpdir"
-  curl -Lo git.tar.gz https://github.com/github/git-lfs/releases/download/v1.1.2/git-lfs-linux-amd64-1.1.2.tar.gz
-  gunzip git.tar.gz
-  tar xf git.tar
-  mv git-lfs-1.1.2/git-lfs /usr/bin
+  version=2.4.2
+  /usr/bin/curl -Lo git.tar.gz https://github.com/git-lfs/git-lfs/releases/download/v${version}/git-lfs-linux-amd64-${version}.tar.gz
+  gzip -dc git.tar.gz |  tar -xvf -
+  mv git-lfs-${version}/git-lfs /usr/bin
   cd ..
   rm -rf "$tmpdir"
   git lfs install --skip-smudge
