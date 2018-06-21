@@ -33,6 +33,9 @@ cat > "$payload" <&0
 load_pubkey "$payload"
 configure_credentials "$payload"
 
+trace_sw=$(jq -r '.source.trace // ""' < "$payload")
+[[ "$trace_sw" == "true" ]] && set -x || true
+
 skip_ssl_verification=$(jq -r '.source.skip_ssl_verification // false' < ${payload})
 uri=$(jq -r '.source.uri // ""' < "$payload")
 git_config_payload=$(jq -r '.source.git_config // []' < "$payload")
