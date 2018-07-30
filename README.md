@@ -79,6 +79,8 @@ If a match is found the pull request will be rebuilt.
 
 * `create_comments`: *Optional (default: false).* If true write comments with build status to pull requests.
 
+* `paths`: *Optional (default "[]" - matches all).* If specified (as a list of regular expression patterns), only changes to the specified files will be built.
+
 ## Behavior
 
 ### `check`: Search for pull requests to build.

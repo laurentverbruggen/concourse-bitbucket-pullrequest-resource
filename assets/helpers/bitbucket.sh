@@ -82,7 +82,7 @@ bitbucket_request() {
     printf "DECLINED"
     return
   else
-    log "Bitbucket request ($request_url) failed: $(cat $request_result)"
+    log "Bitbucket request ($request_url) failed: $(cat ${request_result})"
     exit 1
   fi
 
@@ -228,4 +228,56 @@ bitbucket_pullrequest_update_comment_status() {
   # $9: skip ssl verification
   log "Updating pull request comment (id: $6) for status on #$4 for $2/$3"
   bitbucket_request "$1" "projects/$2/repos/$3/pull-requests/$4/comments/$6" "" "{\"text\": \"$5\", \"version\": \"$7\" }" "" "$9" "$8" "PUT"
+}
+
+bitbucket_pullrequest_changes() {
+  # $1: host
+  # $2: project
+  # $3: repository id
+  # $4: pullrequest id
+  # $5: netrc file (default: $HOME/.netrc)
+  # $6: skip ssl verification
+
+  log "Retrieving pull request changes #$4 for $2/$3"
+  bitbucket_request "$1" "projects/$2/repos/$3/pull-requests/$4/changes" "" "" "" "$6" "$5"
+}
+
+does_pullrequest_include_changes_in_paths() {
+  # $1: host
+  # $2: project
+  # $3: repository id
+  # $4: pullrequest id
+  # $5: paths
+  # $6: netrc file (default: $HOME/.netrc)
+  # $7: skip ssl verification
+
+  local paths=$5
+
+  if [ -z "${paths}" -o "${paths}" == "[]" ]; then
+    echo "true"
+
+    return
+  fi
+
+  set -e -o pipefail
+  local pull_request_changes
+  local changed_files
+  local changed_files_that_match_paths
+
+  pull_request_changes=$(bitbucket_pullrequest_changes "$1" "$2" "$3" "$4" "$6" "$7")
+  changed_files=$(echo "${pull_request_changes}" | jq -r ".[] | .path.toString")
+
+  for path in $(echo ${paths} | jq -r ".[]"); do
+    set +e
+    changed_files_that_match_paths=$(echo "${changed_files}" | grep "${path}")
+    set -e
+
+    if [ -n "${changed_files_that_match_paths}" ]; then
+      echo "true"
+
+      return
+    fi
+  done
+
+  echo "false"
 }
