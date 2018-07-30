@@ -160,11 +160,6 @@ if [ -n "$additionnal_comment" ]; then
   additionnal_comment="${additionnal_comment//\[\[BRANCH\]\]/$branch}"
 fi
 
-# Add branch name to additional comment
-if [ -n "$additionnal_comment" ]; then
-  additionnal_comment="${additionnal_comment//\[\[BRANCH\]\]/$branch}"
-fi
-
 # add comment to pull request to track if build was started/finished
 comment_message=$(bitbucket_pullrequest_progress_comment "$status" "$prq_hash" "$source_commit" "$target_commit", "$additionnal_comment")
 comments=$(bitbucket_pullrequest_overview_comments "$repo_host" "$repo_project" "$repo_name" "$prq_number" "" "$skip_ssl_verification" | jq -c '.[]')

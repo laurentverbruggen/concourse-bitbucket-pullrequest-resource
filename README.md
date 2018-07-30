@@ -131,13 +131,6 @@ Set the status message on specified pull request.
 * `commentFile`: *Optional.* The path to a file that contains a custom comment to
   add to the message. This allow the comment to be built by a previous task in the job.
 
-* `comment`: *Optional.* A custom comment that you want added to the status message.
-  Any occurence of `[[BRANCH]]` will be replace by the actual branch name form the
-  pull request.
-
-* `commentFile`: *Optional.* The path to a file that contains a custom comment to
-  add to the message. This allow the comment to be built by a previous task in the job.
-
 ## Example pipeline
 
 ```yaml
