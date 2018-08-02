@@ -66,8 +66,9 @@ bitbucket_request() {
 
   if [ "$(jq -r '.isLastPage' < "$request_result")" == "false" ]; then
     local nextPage=$(jq -r '.nextPageStart' < "$request_result")
-    local nextResult=$(bitbucket_request "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "start=${nextPage}&limit=${VALUES_LIMIT}")
-    jq -c '.values' < "$request_result" | jq -c ". + $nextResult"
+    bitbucket_request "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "start=${nextPage}&limit=${VALUES_LIMIT}" > tmp.json
+
+    jq -s -c '.[0].values + .[1]' "$request_result" "tmp.json"
   elif [ "$(jq -c '.values' < "$request_result")" != "null" ]; then
     jq -c '.values' < "$request_result"
   elif [ "$(jq -c '.errors' < "$request_result")" == "null" ]; then
