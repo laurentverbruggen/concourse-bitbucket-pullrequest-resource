@@ -249,36 +249,66 @@ does_pullrequest_include_changes_in_paths() {
   # $3: repository id
   # $4: pullrequest id
   # $5: paths
-  # $6: netrc file (default: $HOME/.netrc)
-  # $7: skip ssl verification
+  # $6: ignore paths
+  # $7: netrc file (default: $HOME/.netrc)
+  # $8: skip ssl verification
 
   local paths=$5
+  local ignore_paths=$6
 
-  if [ -z "${paths}" -o "${paths}" == "[]" ]; then
+  if [ -z "${paths}" -o "${paths}" == "[]" ] && \
+     [ -z "${ignore_paths}" -o "${ignore_paths}" == "[]" ]; then
     echo "true"
 
     return
+  fi
+
+  if [ -z "${paths}" -o "${paths}" == "[]" ]; then
+    paths="[\".*\"]"
+  fi
+
+  if [ -z "${ignore_paths}" ]; then
+    ignore_paths="[]"
   fi
 
   set -e -o pipefail
   local pull_request_changes
   local changed_files
   local changed_files_that_match_paths
+  local grep_arguments_for_paths
 
-  pull_request_changes=$(bitbucket_pullrequest_changes "$1" "$2" "$3" "$4" "$6" "$7")
+  pull_request_changes=$(bitbucket_pullrequest_changes "$1" "$2" "$3" "$4" "$7" "$8")
   changed_files=$(echo "${pull_request_changes}" | jq -r ".[] | .path.toString")
+  grep_arguments_for_paths=$(get_grep_arguments_for_list "${paths}")
 
-  for path in $(echo ${paths} | jq -r ".[]"); do
+  set +e
+  changed_files_that_match_paths="$(echo "${changed_files}" | grep ${grep_arguments_for_paths})"
+  set -e
+
+  local grep_arguments_for_ignore_paths
+  grep_arguments_for_ignore_paths=$(get_grep_arguments_for_list "${ignore_paths}")
+
+  if [ -n "${grep_arguments_for_ignore_paths}" ]; then
     set +e
-    changed_files_that_match_paths=$(echo "${changed_files}" | grep "${path}")
+    changed_files_that_match_ignore_paths=$(echo "${changed_files_that_match_paths}" | grep -v ${grep_arguments_for_ignore_paths})
     set -e
+  else
+    changed_files_that_match_ignore_paths="${changed_files_that_match_paths}"
+  fi
 
-    if [ -n "${changed_files_that_match_paths}" ]; then
-      echo "true"
+  if [ -n "${changed_files_that_match_ignore_paths}" ]; then
+    echo "true"
+  else
+    echo "false"
+  fi
+}
 
-      return
-    fi
+get_grep_arguments_for_list() {
+  grep_arguments_for_ignore_paths=""
+
+  for element in $(echo $1 | jq -r ".[]"); do
+    grep_arguments_for_ignore_paths="${grep_arguments_for_ignore_paths} -e ${element}"
   done
 
-  echo "false"
+  echo "${grep_arguments_for_ignore_paths}"
 }
