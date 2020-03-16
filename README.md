@@ -66,6 +66,8 @@ See [concourse docs](https://concourse-ci.org/resource-types.html) for more deta
 * `only_for_branch`: *Optional.* If specified only pull requests which target those branches will be considered.
 It will accept a regular expression as determined by [egrep](http://linuxcommand.org/man_pages/egrep1.html).
 
+* `sleep_between_fetches`: *Optional (default: 0).* Number of seconds to sleep between checking pull requests, avoiding too frequent fetches for check method.
+
 * `only_without_conflicts`: *Optional (default: true).* If enabled only pull requests which are not in a conflicted state will be built.
 
 * `only_when_mergeable`: *Optional (default: false).* If enabled only pull requests which are mergeable (all tasks done, required number of approvers reached, ...) will be built.
