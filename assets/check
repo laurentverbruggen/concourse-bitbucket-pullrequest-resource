@@ -37,6 +37,8 @@ only_for_branch=$(jq -r '.source.only_for_branch // "."' < "$payload")
 only_without_conflicts=$(jq -r '.source.only_without_conflicts // "true"' < "$payload")
 only_when_mergeable=$(jq -r '.source.only_when_mergeable // "false"' < "$payload")
 only_when_asked=$(jq -r '.source.only_when_asked // "false"' < "$payload")
+sleep_between_fetches=$(jq -r '.source.sleep_between_fetches // "0"' < "$payload")
+  sleep_between_fetches=$(echo "$sleep_between_fetches" | sed 's/[^0-9\.]//g')
 rebuild_when_target_changed=$(jq -r '.source.rebuild_when_target_changed // "false"' < "$payload")
 rebuild_phrase=$(jq -r '.source.rebuild_phrase // "test this please"' < "$payload")
 CURRENT_VERSION_DATE=$(jq -r '.version.date // "0"' < "$payload")
@@ -61,6 +63,7 @@ set +e
 PULL_REQUESTS=$(echo "$REMOTES" | grep -E "/pull\\-requests/[0-9]+/${prq_branch}")
 set -e
 
+
 versions="[]"
 if [ -n "$PULL_REQUESTS" ]; then
   log "Calculating repository specifics"
@@ -76,6 +79,7 @@ if [ -n "$PULL_REQUESTS" ]; then
 
   versions="[]"
   while read pull_request ; do
+    sleep $sleep_between_fetches  # throttle requests to avoid excessive load to server
     log "Verifying pull request"
     # determine hash and prq number from grep
     prq_number=$(echo "$pull_request" | sed -E "s/^.*\/pull-requests\/([0-9]+)\/.*$/\\1/")
