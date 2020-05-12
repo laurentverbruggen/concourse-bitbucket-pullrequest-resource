@@ -166,9 +166,10 @@ getBasePathOfBitbucket() {
 }
 
 cleanup() {
-  rm -rf "$TMPDIR/bitbucket-pullrequest-resource-*"
-  if pgrep ssh-agent; then
-    killall ssh-agent
+  rm -rf "$TMPDIR/bitbucket-pullrequest-resource-bitbucket-request*"
+  rm -rf "$TMPDIR/bitbucket-pullrequest-resource-bitbucket-request-data*"
+  if pgrep ssh-agent > /dev/null 2>&1; then
+    killall ssh-agent > /dev/null 2>&1
   fi
 }
 
