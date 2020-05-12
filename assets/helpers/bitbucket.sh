@@ -35,9 +35,6 @@ bitbucket_request() {
     rm -f "$request_data"
   }
 
-  # register the cleanup function to be called on the EXIT signal
-  trap request_result_cleanup EXIT
-
   local extra_options=""
   if [ -n "$data" ]; then
     method=${method:-POST}
