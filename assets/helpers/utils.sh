@@ -167,7 +167,9 @@ getBasePathOfBitbucket() {
 
 cleanup() {
   rm -rf "$TMPDIR/bitbucket-pullrequest-resource-*"
-  killall ssh-agent
+  if pgrep ssh-agent; then
+    killall ssh-agent
+  fi
 }
 
 trap cleanup EXIT
